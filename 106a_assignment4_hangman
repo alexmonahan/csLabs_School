@@ -1,0 +1,550 @@
+
+/*
+ * File: HangmanCanvas.java
+ * ------------------------
+ * This file keeps track of the Hangman display.
+ */
+
+import acm.graphics.*;
+import acm.util.ErrorException;
+import acm.program.*;
+
+public class HangmanCanvas extends GCanvas {
+
+    /* Width of the screen. This variable was created because
+     * when the screen is maximized, I do not want getWidth()
+     * to find the width of this new screen, as it will mess
+     * up how the parts fit together.*/
+    int x;
+
+    /* Height of the screen. Done for the same reasons as x. */
+    int y;
+
+    /* Method: reset */
+    /**
+     * Resets the screen so the scaffold appears.
+     */
+    public void reset() {
+        x = getWidth();
+        y = getHeight();
+        drawStartingSetUp();
+    }
+
+    /* Method: drawStartingSetUp */
+    /**
+     * Draws the original components of our scaffold by
+     * creating three different lines.
+     */
+    private void drawStartingSetUp(){
+        GLine rope = new GLine(x/2, (y/2 - HEAD_RADIUS), x/2, (y/2 - HEAD_RADIUS - ROPE_LENGTH));
+        GLine beam = new GLine(x/2, (y/2 - HEAD_RADIUS - ROPE_LENGTH), x/2 - BEAM_LENGTH, (y/2 - HEAD_RADIUS - ROPE_LENGTH));
+        GLine scaffold = new GLine(x/2 - BEAM_LENGTH, (y/2 - HEAD_RADIUS - ROPE_LENGTH), x/2 - BEAM_LENGTH, (y/2 - HEAD_RADIUS - ROPE_LENGTH + SCAFFOLD_HEIGHT));
+        add(rope);
+        add(beam);
+        add(scaffold);
+    }
+
+    /* Method: displayWord */
+    /**
+     * Updates the word on the screen to correspond to the current
+     * state of the game.  The argument string shows what letters have
+     * been guessed so far; unguessed letters are indicated by hyphens.
+     * @param word The partially guessed word thus far in the game.
+     */
+    public void displayWord(String word) {
+        GLabel myWordLabel = new GLabel(word);
+        if (getElementAt(x/2, 5*y/4) != null){
+            remove(getElementAt(x/2, 5*y/4));
+        }
+
+        myWordLabel.setFont("Arial-25");
+        add(myWordLabel, x/2, 5*y/4);
+
+    }
+
+    /* Method: noteIncorrectGuess */
+    /**
+     * Calls a method to draw the next part of our Hangman's body on the screen.
+     * Updates the display to correspond to an incorrect guess by the
+     * user.  Calling this method causes the next body part to appear
+     * on the scaffold and adds the letter to the list of incorrect
+     * guesses that appears at the bottom of the window.
+     * @param letter The incorrect letter guessed by the player.
+     */
+    public void noteIncorrectGuess(char letter) {
+        incorrectGuessLetters += letter;
+        GLabel incorrectGuessLabel = new GLabel(incorrectGuessLetters);
+
+        if (getElementAt(x/2, 4*y/3) != null){
+            remove(getElementAt(x/2, 4*y/3));
+        }
+
+        incorrectGuessLabel.setFont("Courier-ITALIC-16");
+        add(incorrectGuessLabel, x/2, 4*y/3);
+
+        drawNewItem(incorrectGuessLetters.length());
+    }
+
+    /* Method: drawNewItem */
+    /**
+     * Draws next part of our Hangman's body on the screen.
+     * @param guesses_played The number of incorrect guesses so far.
+     */
+    private void drawNewItem(int guesses_played){
+        if(guesses_played == 1){
+            drawHead();
+        } else if (guesses_played == 2){
+            drawNeckAndBody();
+        }else if (guesses_played == 3){
+            drawRightArm();
+        }else if (guesses_played == 4){
+            drawLeftArm();
+        }else if (guesses_played == 5){
+            drawRightHand();
+        }else if (guesses_played == 6){
+            drawLeftHand();
+        }else if (guesses_played == 7){
+            drawRightLeg();
+        }else{
+            drawLeftLeg();
+        }
+    }
+
+    /* Method: drawHead */
+    /**
+     * Draws the head on the screen.
+     */
+    private void drawHead(){
+        GOval head = new GOval(x/2 - HEAD_RADIUS, y/2 - HEAD_RADIUS, 2*HEAD_RADIUS, 2*HEAD_RADIUS);
+        add(head);
+    }
+
+    /* Method: drawNeckAndBody */
+    /**
+     * Draws the neck and body on the screen.
+     */
+    private void drawNeckAndBody(){
+        int neck_y_cord = y/2 + HEAD_RADIUS;
+        GLine neck = new GLine(x/2, neck_y_cord, x/2, neck_y_cord + ARM_OFFSET_FROM_HEAD + BODY_LENGTH);
+        add(neck);
+    }
+
+    /* Method: drawRightArm */
+    /**
+     * Draws the right arm on the screen.
+     */
+    private void drawRightArm(){
+        int arm_y_cord = y/2 + HEAD_RADIUS + ARM_OFFSET_FROM_HEAD;
+        GLine rightArm = new GLine(x/2, arm_y_cord, x/2 + UPPER_ARM_LENGTH, arm_y_cord);
+        add(rightArm);
+    }
+
+    /* Method: drawLeftArm */
+    /**
+     * Draws the left arm on the screen.
+     */
+    private void drawLeftArm(){
+        int arm_y_cord = y/2 + HEAD_RADIUS + ARM_OFFSET_FROM_HEAD;
+        GLine leftArm = new GLine(x/2, arm_y_cord, x/2 - UPPER_ARM_LENGTH, arm_y_cord);
+        add(leftArm);
+    }
+
+    /* Method: drawRightHand */
+    /**
+     * Draws the right hand on the screen.
+     */
+    private void drawRightHand(){
+        int x_start = x/2 + UPPER_ARM_LENGTH;
+        int y_start = y/2 + HEAD_RADIUS + ARM_OFFSET_FROM_HEAD;
+        GLine rightHand = new GLine(x_start, y_start, x_start, y_start + LOWER_ARM_LENGTH);
+        add(rightHand);
+    }
+
+    /* Method: drawLeftHand */
+    /**
+     * Draws the left hand on the screen.
+     */
+    private void drawLeftHand(){
+        int x_start = x/2 - UPPER_ARM_LENGTH;
+        int y_start = y/2 + HEAD_RADIUS + ARM_OFFSET_FROM_HEAD;
+        GLine leftHand = new GLine(x_start, y_start, x_start, y_start + LOWER_ARM_LENGTH);
+        add(leftHand);
+    }
+
+    /* Method: drawLeftLeg */
+    /**
+     * Draws the left leg on the screen.
+     */
+    private void drawLeftLeg(){
+        int hip_x_start = x/2;
+        int hip_y_start = y/2 + HEAD_RADIUS + BODY_LENGTH + ARM_OFFSET_FROM_HEAD;
+        GLine leftHip = new GLine(hip_x_start, hip_y_start, hip_x_start - HIP_WIDTH/2, hip_y_start);
+        add(leftHip);
+        int leg_x_start = hip_x_start - HIP_WIDTH/2;
+        int leg_y_start = hip_y_start;
+        GLine leftLeg = new GLine(leg_x_start, leg_y_start, leg_x_start, leg_y_start + LEG_LENGTH);
+        add(leftLeg);
+        int foot_x_start = leg_x_start;
+        int foot_y_start = leg_y_start + LEG_LENGTH;
+        GLine leftFoot = new GLine(foot_x_start, foot_y_start, foot_x_start - FOOT_LENGTH, foot_y_start);
+        add(leftFoot);
+    }
+
+    /* Method: drawRightLeg */
+    /**
+     * Draws the right leg on the screen.
+     */
+    private void drawRightLeg(){
+        int hip_x_start = x/2;
+        int hip_y_start = y/2 + HEAD_RADIUS + BODY_LENGTH + ARM_OFFSET_FROM_HEAD;
+        GLine rightHip = new GLine(hip_x_start, hip_y_start, hip_x_start + HIP_WIDTH/2, hip_y_start);
+        add(rightHip);
+        int leg_x_start = hip_x_start + HIP_WIDTH/2;
+        int leg_y_start = hip_y_start;
+        GLine leftLeg = new GLine(leg_x_start, leg_y_start, leg_x_start, leg_y_start + LEG_LENGTH);
+        add(leftLeg);
+        int foot_x_start = leg_x_start;
+        int foot_y_start = leg_y_start + LEG_LENGTH;
+        GLine leftFoot = new GLine(foot_x_start, foot_y_start, foot_x_start + FOOT_LENGTH, foot_y_start);
+        add(leftFoot);
+    }
+
+    /* Keeps track of the incorrect letters guessed */
+    private String incorrectGuessLetters = "";
+    private static final int SCAFFOLD_HEIGHT = 360;
+    private static final int BEAM_LENGTH = 144;
+    private static final int ROPE_LENGTH = 18;
+    private static final int HEAD_RADIUS = 36;
+    private static final int BODY_LENGTH = 144;
+    private static final int ARM_OFFSET_FROM_HEAD = 28;
+    private static final int UPPER_ARM_LENGTH = 72;
+    private static final int LOWER_ARM_LENGTH = 44;
+    private static final int HIP_WIDTH = 36;
+    private static final int LEG_LENGTH = 108;
+    private static final int FOOT_LENGTH = 28;
+
+}
+
+
+
+/*
+* File: HangmanLexicon.java
+* -------------------------
+* This file contains a stub implementation of the HangmanLexicon
+* class that you will reimplement for Part III of the assignment.
+*/
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+/* Java instructed me to import the package below, as
+* originally I was getting an error about undefined ArrayLists.*/
+import java.util.ArrayList;
+
+import acm.util.*;
+
+/* Copy the words from HangmanLexicon.txt into an array
+* using a Buffered Reader.*/
+public class HangmanLexicon {
+   public HangmanLexicon(){
+       wordList = new ArrayList<String>();
+       try {
+           BufferedReader rd = new BufferedReader(new FileReader("HangmanLexicon.txt"));
+           while (true) {
+               String line = rd.readLine();
+               if (line == null) break;
+               wordList.add(line);
+           }
+           rd.close();
+
+       } catch (IOException ex) {
+           throw new ErrorException(ex);
+       }
+   }
+
+
+
+   /* Method: getWordCount */
+   /**
+    * @result The number of words in the array.
+    */
+   public int getWordCount() {
+       return wordList.size();
+   }
+
+   /* Method: getWord */
+   /**
+    * Returns the word at the specified index. This word
+    * will be what we play the game of Hangman with.
+    * @result the word at the specified index.
+    * @param The random number which will be used as the index
+    * to find our random word.
+    */
+   public String getWord(int index) {
+       String word = wordList.get(index);
+       return word;
+   }
+
+   /* Our array of words read in from HangLexicon.txt
+    * as an instance variable */
+   private ArrayList<String> wordList;
+}
+
+
+
+/*
+ * File: Hangman.java
+ * ------------------
+ * This program will eventually play the Hangman game from
+ * Assignment #4.
+ */
+ 
+import acm.graphics.*;
+ 
+import acm.program.*;
+import acm.util.*;
+import java.io.*;
+import java.awt.*;
+ 
+ 
+public class Hangman extends ConsoleProgram {
+ 
+    /* The total number of guesses allowed is a constant */
+    private static final int num_guesses = 8;
+Constants are conventionally all upper-case, so this would be NUM_GUESSES.
+
+Saurabh Sharan (saurabh1)
+
+     
+     
+    /* Method: init */
+    /**
+     * Initalizes the canvas and then adds the
+     * Hangman canvas to the screen.
+     */
+    public void init() {
+        canvas = new HangmanCanvas();
+        add(canvas);
+    }  
+     
+    /* Method: run */
+    /**
+     * This method prints the intro welcome, generates a random
+     * word for the game, and then sets this word equal to the
+     * initial row of dashes. Then, the game is called.
+     * This method also resets the canvas and displays
+     * the original row of dashes for our word.
+     */
+    public void run() {
+        println("Welcome to Hangman");
+        myHangman = new HangmanLexicon();
+        word = myHangman.getWord(rgen.nextInt(myHangman.getWordCount()));
+        partial_word = encrypt(word);
+        canvas.reset();
+        canvas.displayWord(partial_word);
+        playHangman();
+    }
+     
+     
+     
+     
+    /* Method: wordComplete */
+    /**
+     * Checks if the partial word is equal to the actual word, meaning
+     * the user has won.
+     * @result A boolean specifying if the user has won or not.
+     */
+    private boolean wordComplete(){
+        if(partial_word.equals(word)){
+            return true;
+        } else{
+            return false;
+        }
+    }
+Can just do return partial_word.equals(word);
+
+Saurabh Sharan (saurabh1)
+
+     
+    /* Method: finish */
+    /**
+     * This method calls either loseGame or winGame
+     * once the player is out of lives or has won.
+     */
+     
+    private void finish(){
+        if (guesses == num_guesses){
+            loseGame();
+        } else{
+            winGame();
+        }
+    }
+     
+    /* Method: loseGame */
+    /**
+     * This method prints the required syntax
+     * once the user is out of guesses.
+     */
+    private void loseGame(){
+Try to make your method names verbs - so a slightly better name would be printLoseGameMessages()
+
+Saurabh Sharan (saurabh1)
+
+        println("You're completely hung");
+        println("The word was: " + word);
+        println("You lose");
+    }
+     
+    /* Method: winGame */
+    /**
+     * This method prints the required syntax
+     * once the user wins the game.
+     */
+    private void winGame(){
+Same as above comment.
+
+Saurabh Sharan (saurabh1)
+
+        println("You guessed the word: " + word);
+        println("You win");
+    }
+     
+    /* Method: playHangman */
+    /**
+     * This method checks to see if the game has ended. If
+     * the game is over, the finish method is called. Otherwise,
+     * a new character is taken from the user with takeGuess.
+     */
+    private void playHangman(){
+        if (guesses == num_guesses || wordComplete()){
+            finish();
+        } else{
+            printOutInformation();
+            takeGuess();
+        }  
+    }
+     
+    /* Method: takeGuess */
+    /**
+     * This method takes the character from the user, makes sure
+     * it is a letter, and turns it to upper case. Then,
+     * a new character is taken from the user and the partial word
+     * is updated using the method checkGuess
+     * as long as the user enters a letter.
+     */
+    private void takeGuess(){
+        String letter = readLine("Your guess: ");
+        char ch = ' ';
+                 
+        if(letter.length() > 0){
+            ch = letter.charAt(0);
+        }
+         
+        if (Character.isLetter(ch) && (letter.length() == 1)){
+            ch = Character.toUpperCase(ch);
+            partial_word = checkGuess(ch, partial_word);
+            playHangman();
+        } else{
+            println("That is not a letter or is more than one letter, try again");
+            playHangman();
+        }
+    }
+     
+     
+    /* Method: printOutInformation */
+    /**
+     * This method prints out the information for each letter guessed.
+     */
+    private void printOutInformation(){
+        println("The word now looks like this: " + partial_word);
+        println("You have " + (num_guesses - guesses) + (" guesses left."));
+    }
+     
+    /* Method: checkGuess */
+    /**
+     * This method checks to see if the character entered
+     * is in the given word. This method also updates
+     * the displays on the canvas for both the correct
+     * and incorrect guesses.
+     * @param char ch1 The character entered by the user.
+     * @param String str The word we are checking for the character.
+     * @result An updated partial string for the user, whether the guess
+     * was correct or not.
+     */
+    private String checkGuess(char ch1, String str){
+        if (word.indexOf(ch1) == -1){
+            wrongGuess(ch1);
+            canvas.noteIncorrectGuess(ch1);
+            return str;
+        } else{
+            str = correctGuess(ch1, str);
+            canvas.displayWord(str);
+            return str;    
+        }          
+    }
+     
+    /* Method: correctGuess */
+    /**
+     * This method replaces the correct character guessed at
+     * all proper parts in the partial word, regardless of
+     * how many times this character appears in the word.
+     * @param char ch The character entered by the user.
+     * @param String str The word we are checking for the character.
+     * @result An updated partial string for the user.
+     */
+    private String correctGuess(char ch, String str){
+        println("That guess is correct");  
+        for (int i = 0; i < word.length(); i++){
+            if (ch == word.charAt(i)){
+                str = str.substring(0, i) + ch + str.substring(i+1);
+            }
+        }
+        return str;
+    }  
+    /* Method: wrongGuess */
+    /**
+     * @param character The wrong character entered by the user.
+     * This method increments guesses and prints out that
+     * the character is not in the word.
+     */
+    private void wrongGuess(char character){
+        guesses++;
+        println("There are no " + character + "'s in this word.");
+    }
+     
+     
+    /* Method: encrypt */
+    /**
+     * @param str The word as a string we want to make equal to dashes.
+     * @result The string with all dashes.
+     * Sets the word equal to the initial row of dashes.
+     */
+    private String encrypt(String str){
+        String result = "";
+        for (int i = 0; i < str.length(); i++){
+            result += "-";
+        }
+        return result;
+    }
+     
+    /* An instance variable of Hangman Lexicon */
+    private HangmanLexicon myHangman;
+     
+    /* The word the user is trying to guess */
+    private String word;
+     
+    /* Instance variable for the canvas */
+    private HangmanCanvas canvas;
+     
+    /* Goes along with the guesses of the user */
+    private String partial_word;
+     
+    /* Random number generator to choose our word */
+    private RandomGenerator rgen = RandomGenerator.getInstance();
+     
+    /* Number of guesses the player has used */
+    public int guesses = 0;
+}
+ 
+    

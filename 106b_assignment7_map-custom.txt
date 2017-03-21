@@ -1,0 +1,15 @@
+IMAGE
+map-custom.jpg
+900
+675
+
+VERTICES
+Empire State;460;196
+Skyline;26;170
+Water;800;350
+
+EDGES
+Empire State;Skyline;1720
+Empire State;Water;2820
+Water;Skyline;4030
+

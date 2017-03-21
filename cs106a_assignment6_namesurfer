@@ -1,0 +1,569 @@
+import acm.program.*;
+import acm.graphics.*;
+
+import java.awt.Font;
+import java.awt.event.*;
+import acm.io.*;
+
+import java.awt.event.*;
+import javax.swing.*;
+import acm.graphics.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+
+// Extension Description: Changes font size with resizing. When name is
+// in the top 25 names, the name label is bolded. Adds a delete button for
+// deletion. Changes color changing method from using index ranking to
+// the first letter of a name. Adds dots of different shapes to the ranking
+// for a specific year. Creates an optional game for the user where they
+// try to get names with a ranking from each decade in the least amount of
+// tries possible. Added a method that changes the label location depending
+// on if ranking 2 is greater than or less than ranking 1.
+
+
+
+public class NameSurferTable extends GCanvas implements NameSurferConstants {
+
+    public NameSurferTable() {
+        arrayListName = new ArrayList<NameSurferEntry>();
+    }
+
+    public void addEntry(NameSurferEntry entry) {
+        removeAll();
+
+        if(arrayListName.contains(entry)){
+
+        } else{
+            arrayListName.add(entry);
+            for(int i = 0; i < arrayListName.size(); i++){
+                GLabel label = new GLabel("" + arrayListName.get(i).toString());
+                double start_y = 20 + i * label.getHeight();
+                double start_x = 20;
+                add(label, start_x, start_y);
+            }
+
+            findHighestRanking();
+        }
+    }
+
+    private void findHighestRanking(){
+        int lowest = 100000;
+        String bestName = " ";
+        for(int i = 0; i < arrayListName.size(); i++){
+            NameSurferEntry entry = arrayListName.get(i);
+            int total = 0;
+            for(int j = 0; j < NDECADES; j++){
+                total += entry.getRank(j);
+            }
+            if (total < lowest){
+                lowest = total;
+                bestName = arrayListName.get(i).getName();
+            }
+        }
+        int font_size = (getWidth() + getHeight())/60;
+        Font myFont = new Font("TimesRoman", Font.BOLD, font_size);
+        GLabel label = new GLabel("Most popular name you have entered: " + bestName);
+        double start_y = getHeight() - label.getHeight();
+        double start_x = 50;
+        label.setFont(myFont);
+        add(label, start_x, start_y);
+    }
+
+    private ArrayList<NameSurferEntry> arrayListName;
+}
+
+
+
+
+/*
+* File: NameSurferGraph.java
+* ---------------------------
+* This class represents the canvas on which the graph of
+* names is drawn. This class is responsible for updating
+* (redrawing) the graphs whenever the list of entries changes
+* or the window is resized.
+*/
+
+import acm.graphics.*;
+
+import java.awt.event.*;
+import java.util.*;
+import java.awt.*;
+
+public class NameSurferGraph extends GCanvas
+  implements NameSurferConstants, ComponentListener {
+
+  //Constructor -- we need the addComponentListener for resizing.
+  public NameSurferGraph() {
+      addComponentListener(this);
+      arrayListNames = new ArrayList<NameSurferEntry>();
+  }
+
+  /* Method: clear() */
+  /**
+   * Gets rid of all names in the ArrayList.
+   */
+  public void clear() {
+      arrayListNames.clear();
+  }
+
+
+  /* Method: nullEntry() */
+  /**
+   * If this method is called, nothing is required to happen.
+   */
+  public void nullEntry(){
+  }
+
+  /* Method: addEntry() */
+  /**
+   * Adds our new entry to the ArrayList.
+   * @param entry The entry to add to our ArrayList.
+   */
+  public void addEntry(NameSurferEntry entry) {
+      arrayListNames.add(entry);
+  }
+
+
+  /* Method: update() */
+  /**
+   * Removes all of the things on the screen and then re-draws
+   * everything with the new entries and/or proper size.
+   */
+  public void update() {
+      removeAll();
+      drawGridsAndLabels();
+      drawEntries();
+  }
+
+  /* Method: drawGridsAndLabels() */
+  /**
+   * Draws the screen and labels required for the graphics.
+   */
+  private void drawGridsAndLabels(){
+      createScreen();
+      createLabels();
+  }
+
+  /* Method: createScreen() */
+  /**
+   * Draws the vertical and horizontal lines for the background.
+   */
+  public void createScreen(){
+      horizontalLineDraw();
+      verticalLineDraw();
+  }
+
+  /* Method: horizontalLineDraws() */
+  /**
+   * Draws the horizontal lines for the background.
+   */
+  private void horizontalLineDraw(){
+      GLine bottomLine = new GLine(0, (getHeight() - GRAPH_MARGIN_SIZE), getWidth(), (getHeight() - GRAPH_MARGIN_SIZE));
+      GLine topLine = new GLine(0, GRAPH_MARGIN_SIZE, getWidth(), GRAPH_MARGIN_SIZE);
+      add(bottomLine);
+      add(topLine);
+  }
+
+  /* Method: verticalLineDraws() */
+  /**
+   * Draws the vertical lines for the background.
+   */
+  private void verticalLineDraw(){
+      double x_spacing = getWidth() / NDECADES;
+
+      for(int i = 0; i < NDECADES; i++) {
+          double x = x_spacing * i;
+          add(new GLine(x, 0, x, getHeight()));
+      }
+  }
+
+  /* Method: createLabels() */
+  /**
+   * Adds the year labels to the screen.
+   */
+  public void createLabels(){
+      int decade_count = 0;
+
+      while(decade_count < NDECADES) {
+          int currentDecade = START_DECADE + decade_count * 10;
+
+          double x_label = 2 + decade_count * (getWidth()/NDECADES);
+          double y_label = getHeight() - 6.3333;
+
+          add(new GLabel(("" + currentDecade), x_label, y_label));
+          decade_count++;
+      }
+  }
+
+  /* Method: drawEntries() */
+  /**
+   * This method goes through the entries and adds them to the graphics.
+   */
+  private void drawEntries(){
+      for(int i = 0; i < arrayListNames.size(); i++){
+          drawNameLine(arrayListNames.get(i), i);
+      }
+  }
+
+  /* Method: drawNameLine() */
+  /**
+   * This method draws the proper slopes for each of the lines.
+   * @param entry The NameSurferEntry we are adding.
+   * @param entryIndex The index of the entry we are adding.
+   */
+  private void drawNameLine(NameSurferEntry entry, int entryIndex) {
+      for(int i = 1; i < NDECADES; i++) {
+          double x_length = getWidth() / NDECADES;
+          double x_start = (i - 1) * x_length;
+          double x_finish = i * x_length;
+          double y_start, y_finish;
+          double baseY = (getHeight() - GRAPH_MARGIN_SIZE * 2);
+
+          if(entry.getRank(i - 1) != 0 && entry.getRank(i) != 0) {
+              y_start = baseY * entry.getRank(i - 1) / MAX_RANK + GRAPH_MARGIN_SIZE;
+              y_finish = baseY * entry.getRank(i) / MAX_RANK + GRAPH_MARGIN_SIZE;
+          } else if(entry.getRank(i - 1) == 0 && entry.getRank(i) == 0) {
+              y_start = getHeight() - GRAPH_MARGIN_SIZE;
+              y_finish = getHeight() - GRAPH_MARGIN_SIZE;
+          }
+          else if (entry.getRank(i - 1) == 0){
+              y_start = getHeight() - GRAPH_MARGIN_SIZE;
+              y_finish = baseY * entry.getRank(i) / MAX_RANK + GRAPH_MARGIN_SIZE;
+          } else {
+              y_start = baseY * entry.getRank(i - 1) / MAX_RANK + GRAPH_MARGIN_SIZE;
+              y_finish = getHeight() - GRAPH_MARGIN_SIZE;
+          }
+
+          GLine nameLine = new GLine(x_start, y_start, x_finish, y_finish);
+          nameLine.setColor(pickColor(entryIndex));
+          add(nameLine);
+
+          addNameLabel(entry, entryIndex);
+
+
+      }
+  }
+
+  /* Method: addNameLabel() */
+  /**
+   * This method adds the proper label for our name for each decade.
+   * @param entry The NameSurferEntry we are adding.
+   * @param entryIndex The index of the entry we are adding.
+   */
+  private void addNameLabel(NameSurferEntry entry, int entryIndex) {
+      for(int i = 0; i < NDECADES; i++) {
+          String entryName = entry.getName();
+          String entryRank = "" + entry.getRank(i);
+          String labelText = "";
+          double label_y;
+          int font_size = (getWidth() + getHeight())/100;
+          Font myFont = new Font("TimesRoman", Font.BOLD, font_size);
+
+          if(Integer.parseInt(entryRank) == 0) {
+              label_y = getHeight() - GRAPH_MARGIN_SIZE - 3.3333333;
+              labelText = entryName + " *";
+          } else{
+              label_y = GRAPH_MARGIN_SIZE + (getHeight() - GRAPH_MARGIN_SIZE * 2) * Integer.parseInt(entryRank)/MAX_RANK - 3.33333;
+              labelText = entryName + " " + entryRank;
+          }
+
+          GLabel label = new GLabel(labelText, (6.66666666 + i * (getWidth()/NDECADES)), label_y);
+          label.setFont(myFont);
+          label.setColor(pickColor(entryIndex));
+          add(label);
+
+
+      }
+  }
+
+
+
+  /* Method: pickColor() */
+  /**
+   * Picks a color for our name.
+   * @param index Determines which color we will return.
+   * @return The color we will draw the label and lines with for the name.
+   */
+  private Color pickColor(int index){
+      if(index % 8 == 1) return Color.BLUE;
+      if(index % 8 == 2) return Color.GREEN;
+      if(index % 8 == 3) return Color.RED;
+      if(index % 8 == 4) return Color.GRAY;
+      if(index % 8 == 5) return Color.ORANGE;
+      if(index % 8 == 6) return Color.YELLOW;
+      if(index % 8 == 7) return Color.CYAN;
+      if(index % 8 == 0) return Color.BLACK;
+      return Color.GREEN;
+  }
+
+  /* Implementation of the ComponentListener interface */
+  public void componentHidden(ComponentEvent e) { }
+  public void componentMoved(ComponentEvent e) { }
+  public void componentResized(ComponentEvent e) { update(); }
+  public void componentShown(ComponentEvent e) { }
+
+  //ArrayList as an instance variable holding all of the entries.
+  public ArrayList<NameSurferEntry> arrayListNames;
+}
+
+import acm.util.*;
+import java.util.*;
+
+public class NameSurferEntry implements NameSurferConstants {
+
+  // NameSurferEntry constructor -- takes a line and extracts the name
+  // and puts the rankings into an array.
+  public NameSurferEntry(String line) {
+      rankingsArray = new int[NDECADES];
+      tokenizer = new StringTokenizer(line);
+      if(tokenizer.hasMoreTokens()) entryName = tokenizer.nextToken();
+      for(int i = 0; i < NDECADES; i++){
+          rankingsArray[i] = Integer.parseInt(tokenizer.nextToken());
+      }
+  }
+
+  /* Method: getName() */
+  /**
+   * @return The name of the entry.
+   */
+  public String getName() {
+      return entryName;
+  }
+
+
+  /* Method: getRank() */
+  /**
+   * Finds the rank for the specific decade in the array.
+   * @param decade The position in the array.
+   * @return The ranking in the form of an integer.
+   */
+  public int getRank(int decade) {
+      int rank = rankingsArray[decade];
+      return rank;
+  }
+
+  /* Method: toString() */
+  /**
+   * Returns the string properly formatted. This method is used
+   * in the extension for the NameSurferTable.
+   */
+  public String toString() {
+      String numRankString = "";
+      for(int i = 0; i < NDECADES; i++){
+          numRankString += getRank(i) + " ";
+      }
+      return entryName + "'s rankings: [" + numRankString + " ]";
+  }
+
+  //instance variables
+  private String entryName = "";
+  private StringTokenizer tokenizer;
+  private int[] rankingsArray;
+}
+
+
+/*
+ * File: NameSurferDataBase.java
+ * -----------------------------
+ * This class keeps track of the complete database of names.
+ * The constructor reads in the database from a file, and
+ * the only public method makes it possible to look up a
+ * name and get back the corresponding NameSurferEntry.
+ * Names are matched independent of case, so that "Eric"
+ * and "ERIC" are the same names.
+ */
+
+import acm.util.*;
+import acmx.export.java.io.FileReader;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.*;
+
+public class NameSurferDataBase implements NameSurferConstants {
+
+    // NameSurferDataBase constructor -- reads in the names and their rankings
+    // and creates a new NameSurferEntry for each of them.
+    public NameSurferDataBase(String filename) {
+        try{
+            BufferedReader br = new BufferedReader(new FileReader(filename));
+
+            while(true) {
+                String line = br.readLine();
+                if (line == null) break;
+                addEntry(line);
+            }
+
+            br.close();
+
+        } catch(IOException ex) {
+            throw new ErrorException(ex);
+        }
+    }
+
+    /* Method: addEntry() */
+    /**
+     * Adds the NameSurferEntry to the HashMap.
+     * @param entryAsString The line we are reading in from the textfile.
+     */
+    private void addEntry(String entryAsString){
+        NameSurferEntry myEntry = new NameSurferEntry(entryAsString);
+        nameDatabase.put(myEntry.getName(), myEntry);
+    }
+
+    /* Method: findEntry() */
+    /**
+     * Finds the entry in the database if it exists.
+     * @param name The name we are looking for.
+     * @return The NameSurferEntry if it exists for the name. Otherwise, we return null.
+     */
+    public NameSurferEntry findEntry(String name) {
+        String nameProperlyFormatted = findProperName(name);
+
+        if(nameDatabase.containsKey(nameProperlyFormatted)) {
+            NameSurferEntry currentEntry = nameDatabase.get(nameProperlyFormatted);
+            return currentEntry;
+        } else return null;
+
+    }
+
+    /* Method: findProperName() */
+    /**
+     * Makes the name the proper format.
+     * @param name The name without proper capitalization.
+     * @return The name properly formatted with only the first letter capitalized.
+     */
+    private String findProperName(String name){
+        String newName = "";
+        char firstLetter = ' ';
+        if(Character.isLetter(name.charAt(0))){
+            firstLetter = Character.toUpperCase(name.charAt(0));
+            }
+
+        newName += firstLetter;
+
+        String nameEnding = name.substring(1);
+
+        for(int i = 0; i < nameEnding.length(); i++){
+            char ch = Character.toLowerCase(nameEnding.charAt(i));
+            newName += ch;
+        }
+
+        return newName;
+    }
+
+    //HashMap instance variable
+    private HashMap <String, NameSurferEntry> nameDatabase = new HashMap <String, NameSurferEntry>();
+}
+
+
+
+/*
+ * File: NameSurferConstants.java
+ * ------------------------------
+ * This file declares several constants that are shared by the
+ * different modules in the NameSurfer application.  Any class
+ * that implements this interface can use these constants.
+ */
+
+public interface NameSurferConstants {
+
+/** The width of the application window */
+    public static final int APPLICATION_WIDTH = 800;
+
+/** The height of the application window */
+    public static final int APPLICATION_HEIGHT = 600;
+
+/** The name of the file containing the data */
+    public static final String NAMES_DATA_FILE = "names-data.txt";
+
+/** The first decade in the database */
+    public static final int START_DECADE = 1900;
+
+/** The number of decades */
+    public static final int NDECADES = 11;
+
+/** The maximum rank in the database */
+    public static final int MAX_RANK = 1000;
+
+/** The number of pixels to reserve at the top and bottom */
+    public static final int GRAPH_MARGIN_SIZE = 20;
+
+}
+
+
+import acm.program.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+   //constructor for NameSurfer
+public class NameSurfer extends Program implements NameSurferConstants {
+
+   /* Method: init() */
+   /**
+    * Adds the nameSurferGraph and proper labels, buttons, & textfields
+    * to the screen. Also adds action listeners.
+    */
+   public void init() {
+       nameDatabase = new NameSurferDataBase(NAMES_DATA_FILE);
+       nameGraph = new NameSurferGraph();
+
+       setUp();
+       addItems();
+       addActionListeners();
+       myName.addActionListener(this);
+       myName.setActionCommand("Graph");
+   }
+
+   /* Method: setUp() */
+   /**
+    * Creates the new JLabel and JTextField.
+    */
+   private void setUp(){
+       label = new JLabel("Name ");
+       myName = new JTextField(BOX_LENGTH);
+
+   }
+
+
+   /* Method: addItems() */
+   /**
+    * Adds the nameSurferGraph and proper labels, buttons, & textfields
+    * to the screen.
+    */
+   private void addItems(){
+       add(nameGraph);
+       add(label, NORTH);
+       add(myName, NORTH);
+       add(new JButton("Graph"), NORTH);
+       add(new JButton("Clear"), NORTH);
+   }
+
+   /* Method: actionPerformed() */
+   /**
+    * Updates/clears the graph depending on the action of the user.
+    * @param e The ActionEvent that is called.
+    */
+   public void actionPerformed(ActionEvent e) {
+       if(e.getActionCommand().equalsIgnoreCase("Clear")){
+           nameGraph.clear();
+           nameGraph.update();
+       } else if(e.getActionCommand().equalsIgnoreCase("Graph")){
+           NameSurferEntry entry = nameDatabase.findEntry(myName.getText());
+           if(entry == null){
+               nameGraph.nullEntry();
+           } else {
+               nameGraph.addEntry(entry);
+               nameGraph.update();
+           }
+       }
+   }
+
+   //instance variables
+   private NameSurferDataBase nameDatabase;
+   private NameSurferGraph nameGraph;
+   private JLabel label;
+   private JTextField myName;
+   private static final int BOX_LENGTH = 20;
+}

@@ -1,0 +1,564 @@
+/*
+ * File: Breakout.java
+ * -------------------
+ * Name: Alex Monahan
+ * Section Leader: Saurabh Sharan
+ *
+ * This file will eventually implement the game of Breakout.
+ */
+ 
+Great overall style/decomposition!
+
+Saurabh Sharan (saurabh1)
+
+/* imports */
+import acm.graphics.*;
+import acm.program.*;
+import acm.util.*;
+ 
+import java.applet.*;
+import java.awt.*;
+import java.awt.event.*;
+ 
+public class Breakout extends GraphicsProgram {
+ 
+/** Width and height of application window in pixels.  On some platforms
+  * these may NOT actually be the dimensions of the graphics canvas. */
+    public static final int APPLICATION_WIDTH = 400;
+    public static final int APPLICATION_HEIGHT = 600;
+ 
+/** Dimensions of game board.  On some platforms these may NOT actually
+  * be the dimensions of the graphics canvas. */
+    private static final int WIDTH = APPLICATION_WIDTH;
+    private static final int HEIGHT = APPLICATION_HEIGHT;
+ 
+/** Dimensions of the paddle */
+    private static final int PADDLE_WIDTH = 60;
+    private static final int PADDLE_HEIGHT = 10;
+ 
+/** Offset of the paddle up from the bottom */
+    private static final int PADDLE_Y_OFFSET = 30;
+ 
+/** Number of bricks per row */
+    private static final int NBRICKS_PER_ROW = 10;
+ 
+/** Number of rows of bricks */
+    private static final int NBRICK_ROWS = 10;
+ 
+/** Separation between bricks */
+    private static final int BRICK_SEP = 4;
+ 
+/** Width of a brick */
+    private static final int BRICK_WIDTH =
+      (WIDTH - (NBRICKS_PER_ROW - 1) * BRICK_SEP) / NBRICKS_PER_ROW;
+ 
+/** Height of a brick */
+    private static final int BRICK_HEIGHT = 8;
+ 
+/** Radius of the ball in pixels */
+    private static final int BALL_RADIUS = 10;
+ 
+/** Offset of the top brick row from the top */
+    private static final int BRICK_Y_OFFSET = 70;
+ 
+/** Number of turns */
+    private static final int NTURNS = 3;
+ 
+/* Method: run() */
+/** Runs the Breakout program. */
+    public void run() {
+        /* Set up the gameboard, paddle, and ball */
+        setUp();
+         
+        /* Mouse Listeners must be added for mousePressed to work */
+        addMouseListeners();
+        /*Game should begin once the user clicks*/
+        waitForClick();
+         
+        /* Play the actual game */
+        play();
+    }
+     
+    /* Method: setUp*/
+    /**
+     * In graphics, we must set up the board, paddle, and ball first.
+     */
+    private void setUp(){
+        createGameBoard();
+        createPaddle();
+        createGameBall();
+    }
+     
+    /* Method: createGameBoard */
+    /**
+     * This method creates a full row of bricks.
+     * This method repeats until the constant NBRICK_ROWS have been created.
+     * This method passes the number of the current row it is creating to the method createRow.
+     */
+    private void createGameBoard(){
+        for (int j = 0; j < NBRICK_ROWS; j++){
+            createRow(j);
+        }
+    }
+     
+    /* Method: createRow*/
+    /**
+     * This methods generates the amount of boxes needed in each row.
+     * This method calls the method createBox that actually creates and adds
+     * the specific GRect to the canvas.
+     * @param rowNum The row number we are creating, starting from the top
+     */
+     
+    private void createRow(int rowNum){
+        Color c = findColor(rowNum);
+        for (int i = 0; i < NBRICKS_PER_ROW; i++){
+            createBox(i, rowNum, c);
+        }
+    }
+     
+    /* Method: findColor */
+    /**
+     * This method determines the specific color used for each row
+     * @param y_num The row number we are creating, starting from the top
+     * @result The color of the given boxes we are creating in the specific row
+     */
+     
+    private Color findColor(int y_num){
+        if((y_num == 0) || (y_num == 1)){
+            /* Once one color is returned, the method is complete */
+            return Color.red;
+        } else if ((y_num == 2) || (y_num == 3)){
+            return Color.orange;
+        } else if ((y_num == 4) || (y_num == 5)){
+            return Color.yellow;
+        } else if ((y_num == 6) || (y_num == 7)){
+            return Color.green;
+        } else{
+            return Color.cyan;
+        }
+    }
+     
+    /* Method: createBox */
+    /**
+     * This method actually constructs each box in the given row.
+     * @param i The column the box is in.
+     * @param j The row the specific box is located in.
+     * @param myColor The color the specific box should be.
+     */
+    private void createBox(int i, int j, Color myColor){
+        /* x_topCorner was picked to look normal on the screen.
+         * This value is equal to how far the first block is in each row
+         * from x = 0.*/
+        double x_topCorner = BRICK_SEP/2.67;
+         
+        /* y_topCorner was given*/
+        double y_topCorner = BRICK_Y_OFFSET;
+         
+        /* x_start is equal to the initial separation from x = 0 (x_topCorner)
+         * plus the BRICK_WIDTH multiplied by the specific column we are in plus
+         * the separation required for the specific column*/
+        double x_start = x_topCorner + BRICK_WIDTH * i + BRICK_SEP * i;
+         
+        /* y_start is equal to the initial separation from y = BRICK_Y_OFFSET (y_topCorner)
+         * plus the BRICK_HEIGHT multiplied by the specific row we are in plus
+         * the separation required for the specific row*/
+        double y_start = y_topCorner + BRICK_HEIGHT*j + BRICK_SEP * j;
+         
+        /* Create the block, fill it with the specific color in its row,
+         * and then added it to the screen.*/
+        GRect myBox = new GRect(x_start, y_start, BRICK_WIDTH, BRICK_HEIGHT);
+        myBox.setFilled(true);
+        myBox.setFillColor(myColor);
+        myBox.setColor(myColor);
+        add(myBox);
+    }
+     
+    /* Method: createPaddle */
+    /**
+     * This method creates the paddle for the game board.
+     * The paddle should be black.
+     * The paddle should be centered in the x-direction.
+     * In the y-direction, the paddle should start and stay put at
+     * the height of the screen minus the constant PADDLE_Y_OFFSET
+     * minus the PADDLE_HEIGHT, as boxes are constructed with a
+     * reference point of the top left corner.
+     */
+     
+    private void createPaddle(){
+        paddle = new GRect((WIDTH-PADDLE_WIDTH)/2, HEIGHT-PADDLE_Y_OFFSET-PADDLE_HEIGHT, PADDLE_WIDTH, PADDLE_HEIGHT);
+        paddle.setFilled(true);
+        add(paddle);
+    }
+     
+     
+    /* Method: createGameBall */
+    /**
+     * This method actually constructs the ball.
+     * The ball should be black and centered in the screen.
+     */
+    private void createGameBall(){
+        gameBall = new GOval(WIDTH/2 - BALL_RADIUS, HEIGHT/2 - BALL_RADIUS, 2*BALL_RADIUS, 2*BALL_RADIUS);
+        gameBall.setFilled(true);
+        add(gameBall);
+    }
+     
+     
+    /* Method: mousePressed */
+    /**
+     * This method moves the paddle.
+     */
+    public void mousePressed(MouseEvent e){
+The paddle should actually move when you drag the mouse, not when you press the mouse.
+
+Saurabh Sharan (saurabh1)
+
+        /* Takes the location of the press and stores it as x.
+         * We do not need the y-value, as this value stays constant.*/
+        double x = e.getX();
+         
+        /* If the press is off the screen in the x-direction, we only want
+         * the paddle to move as far as possible without going off of the screen.
+         * The 'if' and 'else if' functions make sure this happens.
+         * If the click is on the screen, the paddle moves to this location.
+         */
+        if (x <= 0){
+            paddle.setLocation(0, HEIGHT-PADDLE_Y_OFFSET-PADDLE_HEIGHT);
+            initial_x_paddle = 0;
+        } else if(x >= (WIDTH - 2*BALL_RADIUS)){
+            paddle.setLocation(WIDTH - PADDLE_WIDTH, HEIGHT-PADDLE_Y_OFFSET-PADDLE_HEIGHT);
+            initial_x_paddle = WIDTH - PADDLE_WIDTH;
+        } else{
+            paddle.move((x - initial_x_paddle), 0);
+            initial_x_paddle = x;
+        }
+    }
+     
+    /* Method: play */
+    /**
+     * This method sets the initial x and y velocities.
+     * Vx is random and may be negative or positive.
+     * This method begins the game.
+     */
+     
+    private void play(){
+        vy = 6.0;
+        vx = rgen.nextDouble(1.0, 3.0);
+        if (rgen.nextBoolean(0.5)) vx = -vx;
+        beginGame();
+    }
+     
+    /* Method: beginGame */
+    /**
+     * This method checks to see if !gameOver (a boolean method).
+     * If the game is not over, the ball is moved in the x and y directions,
+     * collisions are checked for, and then there is a pause.
+     */
+     
+    private void beginGame(){
+        while(!gameOver()){
+            moveBall();
+            checkForCollisions();
+            pause(40);
+            }          
+        /* Once the game is over, we must determine if the person
+         * won for lost. If numLives == 0, the person lost, so
+         * we display the loser label. Otherwise, the person won,
+         * and we show the winner label. */
+        if (numLives == 0){
+            loserBackground();
+            loserLabel();
+        } else {
+            winnerBackground();
+            winnerLabel();
+        }
+    }  
+     
+    /* Method: loserLabel */
+    /**
+     * This method displays a label once the player loses.
+     */
+    private void loserLabel(){
+        GLabel label = new GLabel("You Lose!");
+        label.setFont("Courier-BOLD-70");
+        label.setColor(Color.RED);
+        add(label, 25, (HEIGHT-label.getAscent())/2);
+    }
+     
+    /* Method: loserBackground */
+    /**
+     * This method sets the background for the loser label.
+     */
+    private void loserBackground(){
+        GRect gameOverRect = new GRect(0, 0, WIDTH, HEIGHT);
+        gameOverRect.setFilled(true);
+        add(gameOverRect);
+        gameOverRect.setFillColor(Color.BLACK);
+    }
+     
+    /* Method: winnerLabel */
+    /**
+     * This method sets up and adds the winning label.
+     */
+    private void winnerLabel(){
+        GLabel label = new GLabel("You Win!");
+        label.setFont("Courier-BOLD-70");
+        label.setColor(Color.YELLOW);
+        add(label, 25, (HEIGHT-label.getAscent())/2);
+    }
+     
+    /* Method: winnerBackground */
+    /**
+     * This method sets the background for the winner label.
+     */
+    private void winnerBackground(){
+        GRect gameOverRect = new GRect(0, 0, WIDTH, HEIGHT);
+        gameOverRect.setFilled(true);
+        add(gameOverRect);
+        gameOverRect.setFillColor(Color.CYAN);
+    }
+     
+    /* Method: moveBall*/
+    /**
+     * This method moves the ball dx/dy.
+     */
+    private void moveBall(){
+        gameBall.move(vx, vy);
+    }
+     
+    /* Method: checkForCollisions */
+    /**
+     * This method determines if the ball has hit anything.
+     */
+    private void checkForCollisions(){
+        /* Calls getCollidingObject() to see if the ball has
+         * hit the paddle or a block. */
+        GObject collidedWith = getCollidingObject();
+         
+        /* As long as collidedWith != null, we know the ball
+         * has hit the paddle or a block. If the ball has hit the
+         * paddle, we want to reverse vy, play the sound,
+         * and then set consecutive_paddle_hits equal to one
+         * to get rid of our sticky paddle problem. If the ball
+         * has hit the paddle last, then it will not change
+         * its vy, thus eliminating the problem of the sticky paddle.
+         *
+         * If the ball did not collide with the ball and is not equal to null,
+         * then it must have run into a brick. Thus, we need to remove this object,
+         * change our y-velocity, and set consecutive_paddle_hits to zero.
+         * We also need to subtract one from the amount of blocks left
+         * to hit for the user. */
+         
+        if(collidedWith != null){
+            if (collidedWith == paddle){
+                consecutive_paddle_hits = consecutive_paddle_hits + 1;
+                if (consecutive_paddle_hits == 1){ /* Only iterates through if this is the first time in a row
+                the ball has hit the paddle */
+                    vy = -vy;
+                }
+            /* If the ball has collided with something and it is not
+             * the paddle, then it must be a brick! */ 
+            } else{
+                consecutive_paddle_hits = 0;
+                vy = -vy;
+                remove(collidedWith);
+                numBricksLeft = numBricksLeft - 1;
+            }
+        }  
+        /* We then need to check if the ball has hit a wall. */
+        wallCollisions();
+    }
+     
+    /* Method: getCollidingObject */
+    /**
+     * This method returns what the ball has collided with. All four corners
+     * of the imaginary box holding the ball are checked. If the ball has not
+     * collided with any objects, null is returned.
+     * @result Returns the object the ball has collided with.
+     */
+    private GObject getCollidingObject(){
+        if (topLeftCollision() != null){
+            return topLeftCollision();
+        } else if (topRightCollision() != null){
+            return topRightCollision();
+        } else if (bottomLeftCollision() != null){
+            return bottomLeftCollision();
+        }else if (bottomRightCollision() != null){
+            return bottomRightCollision();
+        } else {
+            return null;
+        }
+    }
+     
+    /* Method: topLeftCollision */
+    /**
+     * This method returns if the top left corner of the rectangle holding our
+     * ball has collided with another object.
+     * @result Returns the object the ball has collided with, if any.
+     */
+    private GObject topLeftCollision(){
+        /* Determines the object at this corner of the ball, if any. */
+        GObject obj = getElementAt(gameBall.getX(), gameBall.getY());
+        if (obj != null && obj != paddle){
+            vy = -vy;
+            return obj;
+        } else if (obj != null){
+            return paddle;
+        } else{
+            return null;
+        }
+    }
+     
+    /* Method: topRightCollision */
+    /**
+     * This method returns if the top right corner of the rectangle holding our
+     * ball has collided with another object.
+     * @result Returns the object the ball has collided with, if any.
+     */
+    private GObject topRightCollision(){
+        GObject obj = getElementAt(gameBall.getX() + 2*BALL_RADIUS, gameBall.getY());
+        if (obj != null && obj != paddle){
+            vy = -vy;
+            return obj;
+        } else if (obj != null){
+            return paddle;
+        }else{
+            return null;
+        }
+    }
+ 
+    /* Method: bottomLeftCollision */
+    /**
+     * This method returns if the bottom left corner of the rectangle holding our
+     * ball has collided with another object.
+     * @result Returns the object the ball has collided with, if any.
+     */
+    private GObject bottomLeftCollision(){
+        GObject obj = getElementAt(gameBall.getX(), gameBall.getY() + 2*BALL_RADIUS);
+        if (obj != null && obj != paddle){
+            vy = -vy;
+            return obj;
+        } else if (obj != null){
+            return paddle;
+        }else{
+            return null;
+        }
+    }
+     
+    /* Method: bottomRightCollision */
+    /**
+     * This method returns if the bottom right corner of the rectangle holding our
+     * ball has collided with another object.
+     * @result Returns the object the ball has collided with, if any.
+     */
+    private GObject bottomRightCollision(){
+        GObject obj = getElementAt(gameBall.getX() + 2*BALL_RADIUS, gameBall.getY() + 2*BALL_RADIUS);
+        if (obj != null && obj != paddle){
+            vy = -vy;
+            return obj;
+        } else if (obj != null){
+            return paddle;
+        }else{
+            return null;
+        }
+    }
+     
+    /* Method: wallCollisions */
+    /**
+     * This method checks to see if the ball has hit any of the walls.
+     */
+    private void wallCollisions(){
+        leftWallCollision();
+        rightWallCollision();
+        topWallCollision();
+        bottomWallCollision();
+    }
+     
+    /* Method: leftWallCollision */
+        /**
+     * This method determines if the ball has hit the left wall.
+     * If so, vx is reversed. Like all wall collisions, if the ball
+     * has hit a wall, then consecutive_paddle_hits is set back to zero.
+     */
+    private void leftWallCollision(){
+        if(gameBall.getX() <= 0){
+            vx = -vx;
+            consecutive_paddle_hits = 0;
+        }
+    }
+     
+    /* Method: rightWallCollision */
+    /**
+     * This method determines if the ball has hit the right wall.
+     * If so, vx is reversed.
+     */
+    private void rightWallCollision(){
+        if(gameBall.getX() >= (WIDTH - 2*BALL_RADIUS)){
+            vx = -vx;
+            consecutive_paddle_hits = 0;
+        }
+    }
+     
+    /* Method: topWallCollision */
+    /**
+     * This method determines if the ball has hit the top wall.
+     If so, vy is reversed.
+     */
+    private void topWallCollision(){
+        if(gameBall.getY() <= (0)){
+            vy = -vy;
+            consecutive_paddle_hits = 0;
+        }
+    }
+     
+    /* Method: bottomWallCollision */
+    /**
+     * This method determines if the ball has hit the bottom wall.
+     * If so, consecutive_paddle_hits is set to zero and the number of lives
+     * the user has is decrease. Then, the ball is re-set in the middle of the screen
+     * for the user to begin the game with his or her new amount of lives.
+     */
+    private void bottomWallCollision(){
+        if(gameBall.getY() >= (HEIGHT - 2*BALL_RADIUS)){
+            numLives--;
+            consecutive_paddle_hits = 0;
+            pause(750);
+            gameBall.setLocation(WIDTH/2 - BALL_RADIUS, HEIGHT/2 - BALL_RADIUS);
+            waitForClick();
+            pause(250);
+            vy = 6.0;
+            vx = rgen.nextDouble(1.0, 3.0);
+            if (rgen.nextBoolean(0.5)) vx = -vx;
+        }
+         
+    }
+     
+    /* Method: gameOver */
+    /**
+     * This method sets determines if the game is over.
+     * @result Returns whether the user is out of lives or bricks.
+     */
+    private boolean gameOver(){
+        return(numLives == 0) || (numBricksLeft == 0);
+    }
+     
+    /* The GRect paddle as an instance variable */
+    private GRect paddle;
+    /* Determines if the ball has hit the paddle recently. This is used
+     * to make sure the paddle is not 'sticky.' */
+    private double consecutive_paddle_hits = 0;
+    /* Ball as an instance variable */
+    private GOval gameBall;
+    /* The initial location of the paddle. This constantly changes and
+     * is used to determine how to move the paddle. */
+    private double initial_x_paddle = (WIDTH-PADDLE_WIDTH)/2;
+    /* Velocities as instance variables */
+    private double vx;
+    private double vy;
+    /* We need the Random Generator to determine vx */
+    private RandomGenerator rgen = RandomGenerator.getInstance();
+    /* Keeps track of lives left */
+    private int numLives = NTURNS;
+    /* Keeps track of bricks left */
+    private int numBricksLeft = NBRICK_ROWS * NBRICKS_PER_ROW;
+}
+ 

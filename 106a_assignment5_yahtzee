@@ -1,0 +1,892 @@
+/*
+ * File: Yahtzee.java
+ * ------------------
+ * This program will eventually play the Yahtzee game.
+ */
+ 
+import acm.io.*;
+import acm.program.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Scanner;
+import java.io.PrintWriter;
+import java.io.File;
+import java.io.FileWriter;
+import acm.util.*;
+ 
+//for the most part, the extensions are at the bottom. I added
+//a high score text, for example, and I also added a guided game.
+//This game is more meant for beginners. It would allow them
+//to see suggested categories they have not picked that
+//would give them the most points, so then they will get
+//a hang of the game quicker.
+ 
+ 
+public class YahtzeeExtension extends GraphicsProgram implements YahtzeeConstants {
+Awesome extensions!!
+
+Saurabh Sharan (saurabh1)
+
+     
+    public static void main(String[] args) {
+        new YahtzeeExtension().start(args);
+    }
+     
+    public void run() {
+        IODialog dialog = getDialog();
+        while(true){
+            nPlayers = dialog.readInt("Enter number of players");
+            if (nPlayers > 0 && nPlayers <= MAX_PLAYERS) break;
+        }
+        while(true){
+            helpString = dialog.readLine("Would you like a helped game? Enter yes or no.");
+            if (helpString.equals("yes") || helpString.equals("no")) break;
+        }
+        playerScoreMatrix = new int[nPlayers][N_CATEGORIES + 1];
+        pickedCategoryMatrix = new int[nPlayers][N_CATEGORIES + 1];
+        initMatrix();
+        playerNames = new String[nPlayers];
+        playerTotalMatrix = new int[nPlayers];
+        for (int i = 1; i <= nPlayers; i++) {
+            playerNames[i - 1] = dialog.readLine("Enter name for player " + i);
+        }
+        display = new YahtzeeDisplay(getGCanvas(), playerNames);
+        playGame();
+    }
+ 
+    private void initMatrix(){
+        for(int i = 0; i < playerScoreMatrix.length; i++){
+            for(int j = 0; j < playerScoreMatrix[0].length; j++){
+                playerScoreMatrix[i][j] = 0;
+            }  
+        }
+         
+        for(int i = 0; i < pickedCategoryMatrix.length; i++){
+            for(int j = 0; j < pickedCategoryMatrix[0].length; j++){
+                pickedCategoryMatrix[i][j] = 0;
+            }  
+        }
+    }  
+         
+     
+    private void playGame() {
+        turnsSoFar = 0;
+        while(turnsSoFar < N_SCORING_CATEGORIES){
+            playRound();
+            turnsSoFar++;
+        }
+        calculateAndDisplayUpperLowerScores();
+        calculateAndDisplayWinner();
+    }
+     
+    private void playRound(){
+        for(int i = 0; i < nPlayers; i++){
+            display.printMessage(playerNames[i] + "'s turn!");
+            playTurn(i);
+        }
+    }
+     
+    private void playTurn(int indexOfPlayer){
+        display.waitForPlayerToClickRoll(indexOfPlayer+1);
+        int[] dice = new int[N_DICE];
+        dice = findDiceArray();
+        display.displayDice(dice);
+        printOutRerollMessage(indexOfPlayer);
+        reroll(dice);
+        display.displayDice(dice);
+        printOutSecondRerollMessage();
+        reroll(dice);
+        display.displayDice(dice);
+        if(helpString.equals("yes")){
+            int suggestedCategory = suggestedCategory(dice, indexOfPlayer);
+            String pickThisCategory = convertCategoryFromIntToString(suggestedCategory);
+            display.printMessage("Select a category. I would recommend: " + pickThisCategory); 
+        } else {
+            display.printMessage("Select a category.");
+        }
+        int category = display.waitForPlayerToSelectCategory();
+        boolean p = checkCategory(indexOfPlayer, category);
+        while(true){
+            if(p) break;
+            display.printMessage("Select a valid category.");
+            category = display.waitForPlayerToSelectCategory();
+            p = checkCategory(indexOfPlayer, category);
+        }
+        calculateScore(indexOfPlayer, dice, category);
+    }
+     
+    private boolean checkCategory(int indexOfPlayer, int category){
+        if (pickedCategoryMatrix[indexOfPlayer][category] == 0) return true;
+        return false;
+    }
+     
+    private void calculateScore(int indexOfPlayer, int[] dice, int category){
+        pickedCategoryMatrix[indexOfPlayer][category] = 1;
+        boolean p = checkForScore(dice, category);
+        updatePlayerScore(indexOfPlayer, dice, category, p);
+    }
+     
+    private boolean checkForScore(int[] dice, int category){
+        boolean myCheck = false;
+         
+        int myOnes = 0;
+        int myTwos = 0;
+        int myThrees = 0;
+        int myFours = 0;
+        int myFives = 0;
+        int mySixes = 0;
+         
+        int myMaxCategory = 0;
+         
+        /* These categories will always return true */
+        if((category >= ONES && category <= SIXES) || category == CHANCE){
+            myCheck = true;
+        }
+         
+        for(int i= 0; i < N_DICE; i++){
+            if(dice[i] == 1){
+                myOnes++;
+            } else if(dice[i] == 2){
+                myTwos++;
+            } else if(dice[i] == 3){
+                myThrees++;
+            } else if(dice[i] == 4){
+                myFours++;
+            } else if(dice[i] == 5){
+                myFives++;
+            }else{
+                mySixes++;
+            }
+        }
+         
+        for(int i = 0; i < 6; i++){
+            myMaxCategory = myOnes;
+            if(myTwos > myMaxCategory){
+                myMaxCategory = myTwos;
+            }
+            if(myThrees > myMaxCategory){
+                myMaxCategory = myThrees;
+            }
+            if(myFours > myMaxCategory){
+                myMaxCategory = myFours;
+            }
+            if(myFives > myMaxCategory){
+                myMaxCategory = myFives;
+            }
+            if(mySixes > myMaxCategory){
+                myMaxCategory = mySixes;
+            }
+        }
+         
+        if(category == THREE_OF_A_KIND){
+            if(myMaxCategory >= 3)
+            myCheck = true;
+        }
+         
+        if(category == FOUR_OF_A_KIND){
+            if(myMaxCategory >= 4)
+            myCheck = true;
+        }  
+         
+        if(category == YAHTZEE){
+            if(myMaxCategory == 5)
+            myCheck = true;
+        }  
+         
+        if(category == FULL_HOUSE){
+            if(myOnes == 3 || myTwos == 3 || myThrees == 3 || myFours == 3 || myFives == 3 || mySixes == 3){
+                if(myOnes == 2 || myTwos == 2 || myThrees == 2 || myFours == 2 || myFives == 2 || mySixes == 2){
+                    myCheck = true;
+                }
+            }
+        }
+         
+        if(category == LARGE_STRAIGHT){
+            if(myOnes == 1 && myTwos == 1 && myThrees == 1 && myFours == 1 && myFives == 1){
+                myCheck = true;
+            }
+            if(mySixes == 1 && myTwos == 1 && myThrees == 1 && myFours == 1 && myFives == 1){
+                myCheck = true;
+            }
+        }
+         
+        if(category == SMALL_STRAIGHT){
+            if(myOnes >= 1 && myTwos >= 1 && myThrees >= 1 && myFours >= 1){
+                myCheck = true;
+            }
+            if(myFives >= 1 && myTwos >= 1 && myThrees >= 1 && myFours >= 1){
+                myCheck = true;
+            }
+            if(mySixes >= 1 && myFives >= 1 && myThrees >= 1 && myFours >= 1){
+                myCheck = true;
+            }
+        }
+         
+        return myCheck;
+    }
+     
+    private void updatePlayerScore(int indexOfPlayer, int[] dice, int category, boolean p){
+        int value;
+        if(!p){
+            playerScoreMatrix[indexOfPlayer][category] = 0;
+            value = 0;
+        } else{
+            playerScoreMatrix[indexOfPlayer][category] = myCategoryScore(dice, category);
+            value = playerScoreMatrix[indexOfPlayer][category];
+        }
+        playerTotalMatrix[indexOfPlayer] += playerScoreMatrix[indexOfPlayer][category];
+        if(category <= SIXES){
+            playerScoreMatrix[indexOfPlayer][UPPER_SCORE] += playerScoreMatrix[indexOfPlayer][category];
+        } else{
+            playerScoreMatrix[indexOfPlayer][LOWER_SCORE] += playerScoreMatrix[indexOfPlayer][category];
+        }
+         
+        display.updateScorecard(category, indexOfPlayer + 1, value);
+        display.updateScorecard(TOTAL, indexOfPlayer + 1, playerTotalMatrix[indexOfPlayer]);
+    }
+     
+    private int myCategoryScore(int[] dice, int category){
+        int myScore = 0;
+        if(category >= ONES && category <= SIXES){
+            for(int i = 0; i < N_DICE; i++){
+                if (dice[i] == category){
+                    myScore += category;
+                }
+            }
+        } else if(category == YAHTZEE){
+            myScore = 50;
+        } else if(category == LARGE_STRAIGHT){
+            myScore = 40;
+        } else if(category == SMALL_STRAIGHT){
+            myScore = 30;
+        }else if(category == FULL_HOUSE){
+            myScore = 25;
+        } else {
+            for (int i = 0; i < N_DICE; i++){
+                myScore += dice[i];
+            }
+        }
+        return myScore;
+    }
+     
+     
+     
+    private void printOutSecondRerollMessage(){
+        display.printMessage("Reroll one more time!");
+    }
+     
+    private void reroll(int[] dice){
+        display.waitForPlayerToSelectDice();
+        for(int i = 0; i < N_DICE; i++){
+            if (display.isDieSelected(i)){
+                dice[i] = rgen.nextInt(1,6);
+            }
+        }
+    }
+     
+    private void printOutRerollMessage(int indexOfPlayer){
+        display.printMessage("Good roll, " + playerNames[indexOfPlayer] + "! Please select the dish you would like to reroll.");
+    }
+     
+ 
+     
+    private int[] findDiceArray(){
+        int[] dice = new int[N_DICE];
+        for (int i = 0; i < N_DICE; i++){
+            dice[i] = rgen.nextInt(1, 6);
+        }
+        return dice;
+         
+    }
+         
+    private void calculateAndDisplayWinner(){
+        int largestScore = 0;
+        int largestScoreIndex = 0;
+        for (int i = 0; i < nPlayers; i++){
+            if (largestScore < playerTotalMatrix[i]){
+                largestScore = playerTotalMatrix[i];
+                largestScoreIndex = i;
+            }
+        }
+        display.printMessage(playerNames[largestScoreIndex] + " wins with a score of " + largestScore + "! Check the YahtzeeScores textfile to see your score!");
+        addToHighScoreList(largestScore);
+    }
+     
+    private void calculateAndDisplayUpperLowerScores(){
+        for (int j = 0; j < nPlayers; j++){
+            display.updateScorecard(UPPER_SCORE, j + 1, playerScoreMatrix[j][UPPER_SCORE]);
+            display.updateScorecard(LOWER_SCORE, j + 1, playerScoreMatrix[j][LOWER_SCORE]);
+            if(playerScoreMatrix[j][UPPER_SCORE] >= 63){
+                playerScoreMatrix[j][UPPER_BONUS] = 35;
+            }
+            display.updateScorecard(UPPER_BONUS, j + 1, playerScoreMatrix[j][UPPER_BONUS]);
+        }
+    }
+     
+    /* Method: addToHighScoreList */
+    /**
+     * Reads in the high score list, adds my score in, and writes the new score list.
+     * @param score The given total of the player with the highest number of points in the most recent game.
+     */
+    private void addToHighScoreList(int score){
+        ArrayList<Integer> highScoreList = new ArrayList<Integer>();
+        highScoreList.add(score);
+        try {
+            BufferedReader rd = openFile();
+            while(true) {
+                String scoreString = rd.readLine();
+                if(scoreString == null) break;
+                int oldScore = Integer.parseInt(scoreString);
+                highScoreList.add(oldScore);           
+            }
+            rd.close();
+            PrintWriter wr = new PrintWriter(new FileWriter("YahtzeeScores.txt"));
+            Collections.sort(highScoreList);
+            for (int i = 0; i < highScoreList.size(); i++){
+                wr.println(highScoreList.get(i));
+            }
+            wr.close();
+        }catch (IOException ex) {
+            throw new ErrorException(ex);
+        }
+    }
+     
+    /* Method: openFile */
+    /**
+     * Opens up the text file to write into.
+     * @return The given text file we want to open
+     */
+    private BufferedReader openFile() {
+        BufferedReader rd = null;
+        while (rd == null) {
+            try {
+                String filename = "YahtzeeScores.txt";
+                rd = new BufferedReader(new FileReader(filename));
+            } catch (IOException ex) {
+                println("That file doesn't exist.");
+            }
+        }
+        return rd;
+    }
+     
+    //finds the maximum possible score for the individual player
+    private int suggestedCategory(int[] dice, int playerIndex){
+        int high = 0;
+        int highIndex = 0;
+        int[] possible = new int[N_CATEGORIES + 1];
+         
+        //initalize the matrix
+        for(int i = 0; i < possible.length; i++){
+            possible[i] = 0;
+        }
+         
+        for(int i = 0; i < possible.length; i++){
+            boolean x = checkForScore(dice, i);
+            boolean p = checkCategory(playerIndex, i);
+            if(p && x){
+                 
+                possible[i] = myCategoryScore(dice, i);
+                 
+                if (possible[i] > high){
+                    highIndex = i;
+                    high = possible[i];
+                }
+            }
+        }
+        return highIndex;
+         
+    }
+     
+    //convert the category as an int as a string to print out and display
+    private String convertCategoryFromIntToString(int category){
+        String str = "";
+        if(category == ONES) str = "ones";
+        if(category == TWOS) str = "twos";
+        if(category == THREES) str = "threes";
+        if(category == FOURS) str = "fours";
+        if(category == FIVES) str = "fives";
+        if(category == SIXES) str = "sixes";
+        if(category == THREE_OF_A_KIND) str = "three of a kind";
+        if(category == FOUR_OF_A_KIND) str = "four of a kind";
+        if(category == FULL_HOUSE) str = "full house";
+        if(category == SMALL_STRAIGHT) str = "small straight";
+        if(category == LARGE_STRAIGHT) str = "large straight";
+        if(category == YAHTZEE) str = "yahtzee";
+        if(category == CHANCE) str = "chance";
+You could also just do return "ones", return "twos", etc.
+
+Saurabh Sharan (saurabh1)
+
+        return str;
+    }
+     
+/* Private instance variables */
+    private int[][] playerScoreMatrix;
+    private int [][] pickedCategoryMatrix;
+    private int[] playerTotalMatrix;
+    private int nPlayers;
+    private int turnsSoFar;
+    private String[] playerNames;
+    private YahtzeeDisplay display;
+    private String helpString;
+    private RandomGenerator rgen = new RandomGenerator();
+ 
+}
+ 
+
+
+/*
+ * File: YahtzeeConstants.java
+ * ---------------------------
+ * This file declares several constants that are shared by the
+ * different modules in the Yahtzee game.
+ */
+
+public interface YahtzeeConstants {
+
+/** The width of the application window */
+    public static final int APPLICATION_WIDTH = 600;
+
+/** The height of the application window */
+    public static final int APPLICATION_HEIGHT = 350;
+
+/** The number of dice in the game */
+    public static final int N_DICE = 5;
+
+/** The maximum number of players */
+    public static final int MAX_PLAYERS = 4;
+
+/** The total number of categories */
+    public static final int N_CATEGORIES = 17;
+
+/** The number of categories in which the player can score */
+    public static final int N_SCORING_CATEGORIES = 13;
+
+/** The constants that specify categories on the scoresheet */
+    public static final int ONES = 1;
+    public static final int TWOS = 2;
+    public static final int THREES = 3;
+    public static final int FOURS = 4;
+    public static final int FIVES = 5;
+    public static final int SIXES = 6;
+    public static final int UPPER_SCORE = 7;
+    public static final int UPPER_BONUS = 8;
+    public static final int THREE_OF_A_KIND = 9;
+    public static final int FOUR_OF_A_KIND = 10;
+    public static final int FULL_HOUSE = 11;
+    public static final int SMALL_STRAIGHT = 12;
+    public static final int LARGE_STRAIGHT = 13;
+    public static final int YAHTZEE = 14;
+    public static final int CHANCE = 15;
+    public static final int LOWER_SCORE = 16;
+    public static final int TOTAL = 17;
+
+}
+
+
+?
+/*
+* File: Yahtzee.java
+* ------------------
+* This program will eventually play the Yahtzee game.
+*/
+
+import acm.io.*;
+import acm.program.*;
+import acm.util.*;
+
+public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
+
+public static void main(String[] args) {
+    new Yahtzee().start(args);
+}
+
+/* Method: run */
+/**
+ * Asks the user how many players there are and reads in the player names.
+ * Sets sizes for the following matrices: playerScoreMatrix, pickedScore, playerNames, playerTotalMatrix.
+ * Calls initMatrix, setting the matrix values equal to zero.
+ * Displays the gameboard and plays the game.
+ */
+public void run() {
+    IODialog dialog = getDialog();
+    while(true){
+        nPlayers = dialog.readInt("Enter number of players");
+        if (nPlayers > 0 && nPlayers <= MAX_PLAYERS) break;
+    }
+    playerScoreMatrix = new int[nPlayers][N_CATEGORIES + 1];
+    pickedCategoryMatrix = new int[nPlayers][N_CATEGORIES + 1];
+    initMatrix();
+    playerNames = new String[nPlayers];
+    playerTotalMatrix = new int[nPlayers];
+    for (int i = 1; i <= nPlayers; i++) {
+        playerNames[i - 1] = dialog.readLine("Enter name for player " + i);
+    }
+    display = new YahtzeeDisplay(getGCanvas(), playerNames);
+    playGame();
+}
+
+/* Method: initMatrix */
+/**
+ * Sets the values of playerScoreMatrix and pickedCategoryMatrix to zero.
+ * */
+private void initMatrix(){
+    for(int i = 0; i < playerScoreMatrix.length; i++){
+        for(int j = 0; j < playerScoreMatrix[0].length; j++){
+            playerScoreMatrix[i][j] = 0;
+            pickedCategoryMatrix[i][j] = 0;
+        }
+    }
+
+}
+
+
+/* Method: playGame */
+/**
+ * While we are less than 13 turns, we play a round.
+ * After the game is over, playGame calls the methods
+ * to calculate and display final scores.
+ */
+private void playGame() {
+    turnsSoFar = 0;
+    while(turnsSoFar < N_SCORING_CATEGORIES){
+        playRound();
+        turnsSoFar++;
+    }
+    calculateAndDisplayUpperLowerScores();
+    calculateAndDisplayWinner();
+}
+
+/* Method: playRound */
+/**
+ * Plays a turn for all of the players in the game.
+ */
+private void playRound(){
+    for(int i = 0; i < nPlayers; i++){
+        display.printMessage(playerNames[i] + "'s turn!");
+        playTurn(i);
+    }
+}
+
+/* Method: playTurn */
+/**
+ * Once a player clicks, it finds and displays the array of dice and then allows two
+ * re-rolls. After the re-rolls, the player is able to pick a category.
+ * We then check if this category has been selected with the checkCategory method.
+ * Next, we calculate the score of the player for their turn at the selected category.
+ * @param indexOfPlayer The player who is currently taking their turn.
+ */
+
+private void playTurn(int indexOfPlayer){
+display.waitForPlayerToClickRoll(indexOfPlayer+1);
+ int[] dice = new int[N_DICE];
+ dice = findDiceArray();
+ display.displayDice(dice);
+ printOutRerollMessage(indexOfPlayer);
+ reroll(dice);
+ display.displayDice(dice);
+ printOutSecondRerollMessage();
+ reroll(dice);
+ display.displayDice(dice);
+ display.printMessage("Select a Category for this roll");
+ int category = display.waitForPlayerToSelectCategory();
+ boolean p = checkCategory(indexOfPlayer, category);
+ while(true){
+     if(p) break;
+     display.printMessage("Select a valid category.");
+     category = display.waitForPlayerToSelectCategory();
+     p = checkCategory(indexOfPlayer, category);
+ }
+ calculateScore(indexOfPlayer, dice, category);
+}
+
+/* Method: findDiceArray */
+/**
+* Finds the random array of dice.
+* @return dice The random array of dice.
+*/
+private int[] findDiceArray(){
+int[] dice = new int[N_DICE];
+        for (int i = 0; i < N_DICE; i++){
+            dice[i] = rgen.nextInt(1, 6);
+        }
+        return dice;
+    }
+
+    /* Method: printOutRerollMessage */
+    /**
+     * Prints out the message for a re-roll.
+     */
+    private void printOutRerollMessage(int indexOfPlayer){
+        display.printMessage("Good roll, " + playerNames[indexOfPlayer] + "! Please select the dish you would like to reroll.");
+    }
+
+    /* Method: reroll */
+    /**
+     * Re-rolls the selected dice.
+     * @param dice The current array of random numbers of the dice.
+     */
+
+    private void reroll(int[] dice){
+        display.waitForPlayerToSelectDice();
+        for(int i = 0; i < N_DICE; i++){
+            if (display.isDieSelected(i)){
+                dice[i] = rgen.nextInt(1,6);
+            }
+        }
+    }
+
+    /* Method: printOutSecondRerollMessage */
+    /**
+     * Prints out the message for the second re-roll.
+     */
+    private void printOutSecondRerollMessage(){
+        display.printMessage("Reroll one more time!");
+    }
+
+    /* Method: checkCategory */
+    /**
+     * Checks if a player has used a previous category.
+     * @param indexOfPlayer The player who we are examining.
+     * @param category The category the player wishes to select.
+     */
+    private boolean checkCategory(int indexOfPlayer, int category){
+        if (pickedCategoryMatrix[indexOfPlayer][category] == 0) return true;
+        return false;
+    }
+
+
+    /* Method: calculateScore */
+    /**
+     * For the selected category, note that it has been selected in the pickedCategoryMatrix.
+     * Checks to see if the player has the right dice arrangement with checkForScore, and then
+     * passes this information to updatePlayerScore.
+     * @param indexOfPlayer The player whose score we are examining.
+     * @param dice The finalized array of dice for the player.
+     * @param category The category the player selected for the turn.
+     */
+    private void calculateScore(int indexOfPlayer, int[] dice, int category){
+        pickedCategoryMatrix[indexOfPlayer][category] = 1;
+        boolean p = checkForScore(dice, category);
+        updatePlayerScore(indexOfPlayer, dice, category, p);
+    }
+
+    /* Method: checkForScore */
+    /**
+     * Checks to see if the dice of the player has the proper arrangement
+     * for the selected category.
+     * @param dice The finalized array of dice for the player.
+     * @param category The category the player selected for the turn.
+     * @return myCheck Whether or not the player has selected a valid category
+     * for their array of dice.
+     */
+    private boolean checkForScore(int[] dice, int category){
+        boolean myCheck = false;
+
+        int myOnes = 0;
+        int myTwos = 0;
+        int myThrees = 0;
+        int myFours = 0;
+        int myFives = 0;
+        int mySixes = 0;
+
+        int myMaxCategory = 0;
+
+        /* These categories will always return true */
+        if(category <= SIXES || category == CHANCE){
+            myCheck = true;
+        }
+
+        for(int i= 0; i < N_DICE; i++){
+            if(dice[i] == 1){
+                myOnes++;
+            } else if(dice[i] == 2){
+                myTwos++;
+            } else if(dice[i] == 3){
+                myThrees++;
+            } else if(dice[i] == 4){
+                myFours++;
+            } else if(dice[i] == 5){
+                myFives++;
+            }else{
+                mySixes++;
+            }
+        }
+
+        for(int i = 0; i < 6; i++){
+            myMaxCategory = myOnes;
+            if(myTwos > myMaxCategory){
+                myMaxCategory = myTwos;
+            }
+            if(myThrees > myMaxCategory){
+                myMaxCategory = myThrees;
+            }
+            if(myFours > myMaxCategory){
+                myMaxCategory = myFours;
+            }
+            if(myFives > myMaxCategory){
+                myMaxCategory = myFives;
+            }
+            if(mySixes > myMaxCategory){
+                myMaxCategory = mySixes;
+            }
+        }
+
+        if(category == THREE_OF_A_KIND){
+            if(myMaxCategory >= 3)
+            myCheck = true;
+        }
+
+        if(category == FOUR_OF_A_KIND){
+            if(myMaxCategory >= 4)
+            myCheck = true;
+        }
+
+        if(category == YAHTZEE){
+            if(myMaxCategory == 5)
+            myCheck = true;
+        }
+
+        if(category == FULL_HOUSE){
+            if(myOnes == 3 || myTwos == 3 || myThrees == 3 || myFours == 3 || myFives == 3 || mySixes == 3){
+                if(myOnes == 2 || myTwos == 2 || myThrees == 2 || myFours == 2 || myFives == 2 || mySixes == 2){
+                    myCheck = true;
+                }
+            }
+        }
+
+        if(category == LARGE_STRAIGHT){
+            if(myOnes == 1 && myTwos == 1 && myThrees == 1 && myFours == 1 && myFives == 1){
+                myCheck = true;
+            }
+            if(mySixes == 1 && myTwos == 1 && myThrees == 1 && myFours == 1 && myFives == 1){
+                myCheck = true;
+            }
+        }
+
+        if(category == SMALL_STRAIGHT){
+            if(myOnes >= 1 && myTwos >= 1 && myThrees >= 1 && myFours >= 1){
+                myCheck = true;
+            }
+            if(myFives >= 1 && myTwos >= 1 && myThrees >= 1 && myFours >= 1){
+                myCheck = true;
+            }
+            if(mySixes >= 1 && myFives >= 1 && myThrees >= 1 && myFours >= 1){
+                myCheck = true;
+            }
+        }
+
+        return myCheck;
+    }
+
+    /* Method: updatePlayerScore */
+    /**
+     * Changes the values of the matrix for the player -- from their total score
+     * to their upper score, and their lower score to their category score.
+     * Updates the display for the individual category and the total.
+     * @param indexOfPlayer The player whose score we are changing
+     * @param dice The finalized array of dice for the player.
+     * @param category The category the player selected for the turn.
+     * @param p True or false whether they will recieve points above zero.
+     */
+    private void updatePlayerScore(int indexOfPlayer, int[] dice, int category, boolean p){
+        int value;
+        if(!p){
+            playerScoreMatrix[indexOfPlayer][category] = 0;
+            value = 0;
+        } else{
+            playerScoreMatrix[indexOfPlayer][category] = myCategoryScore(dice, category);
+            value = playerScoreMatrix[indexOfPlayer][category];
+        }
+        playerTotalMatrix[indexOfPlayer] += playerScoreMatrix[indexOfPlayer][category];
+        if(category <= SIXES){
+            playerScoreMatrix[indexOfPlayer][UPPER_SCORE] += playerScoreMatrix[indexOfPlayer][category];
+        } else{
+            playerScoreMatrix[indexOfPlayer][LOWER_SCORE] += playerScoreMatrix[indexOfPlayer][category];
+        }
+
+        display.updateScorecard(category, indexOfPlayer + 1, value);
+        display.updateScorecard(TOTAL, indexOfPlayer + 1, playerTotalMatrix[indexOfPlayer]);
+    }
+
+    /* Method: myCategoryScore */
+    /**
+     * Finds the score for the valid selected category.
+     * @param dice The finalized array of dice for the player.
+     * @param category The category the player selected for the turn.
+     * @return myScore The resulting score.
+     */
+    private int myCategoryScore(int[] dice, int category){
+        int myScore = 0;
+        if(category >= ONES && category <= SIXES){
+            for(int i = 0; i < N_DICE; i++){
+                if (dice[i] == category){
+                    myScore += category;
+                }
+            }
+        } else if(category == YAHTZEE){
+            myScore = 50;
+        } else if(category == LARGE_STRAIGHT){
+            myScore = 40;
+        } else if(category == SMALL_STRAIGHT){
+            myScore = 30;
+        }else if(category == FULL_HOUSE){
+            myScore = 25;
+        } else {
+            for (int i = 0; i < N_DICE; i++){
+                myScore += dice[i];
+            }
+        }
+        return myScore;
+    }
+
+
+    /* Method: calculateAndDisplayWinner */
+    /**
+     * Finds the winner, their score, and then displays this information.
+     */
+    private void calculateAndDisplayWinner(){
+        int largestScore = 0;
+        int largestScoreIndex = 0;
+        for (int i = 0; i < nPlayers; i++){
+            if (largestScore < playerTotalMatrix[i]){
+                largestScore = playerTotalMatrix[i];
+                largestScoreIndex = i;
+            }
+        }
+        display.printMessage("Unless there is a tie..." + playerNames[largestScoreIndex] + " wins with a score of " + largestScore + "!");
+    }
+
+
+    /* Method: calculateAndDisplayUpperLowerScores */
+    /**
+     * Adds the lower score, upper score, and bonus. Then, updates this
+     * information of the gameboard.
+     */
+    private void calculateAndDisplayUpperLowerScores(){
+        for (int j = 0; j < nPlayers; j++){
+            display.updateScorecard(UPPER_SCORE, j + 1, playerScoreMatrix[j][UPPER_SCORE]);
+            display.updateScorecard(LOWER_SCORE, j + 1, playerScoreMatrix[j][LOWER_SCORE]);
+            if(playerScoreMatrix[j][UPPER_SCORE] >= 63){
+                playerScoreMatrix[j][UPPER_BONUS] = 35;
+            }
+            display.updateScorecard(UPPER_BONUS, j + 1, playerScoreMatrix[j][UPPER_BONUS]);
+        }
+    }
+
+
+/* Private instance variables */
+    private int[][] playerScoreMatrix;
+    private int [][] pickedCategoryMatrix;
+    private int[] playerTotalMatrix;
+    private int nPlayers;
+    private int turnsSoFar;
+    private String[] playerNames;
+    private YahtzeeDisplay display;
+    private RandomGenerator rgen = new RandomGenerator();
+
+}
+ 
